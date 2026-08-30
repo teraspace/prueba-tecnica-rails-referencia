@@ -104,6 +104,26 @@ class CutPlannerTest < ActiveSupport::TestCase
     assert_operator plan.waste_ratio, :>=, 0.0
   end
 
+  test "accepts a replaceable packing strategy" do
+    strategy = Class.new do
+      def initialize(_input); end
+
+      def call
+        { bars: [], unplaced: [] }
+      end
+    end
+
+    plan = CutPlanner.new(
+      pieces: [],
+      stock: [],
+      config: { kerf: 0, head_trim: 0, tail_trim: 0 },
+      strategy: strategy
+    ).call
+
+    assert_empty plan.bars
+    assert_empty plan.unplaced
+  end
+
   private
 
   def planner(pieces:, stock:, config:)
