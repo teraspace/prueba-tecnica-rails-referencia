@@ -14,6 +14,10 @@ BEGIN
 END
 $$;
 
+-- Reserva material para una solicitud respetando FIFO.
+-- La función es deliberadamente la frontera transaccional: la lectura del
+-- inventario, sus descuentos, los movimientos y el cambio de estado ocurren
+-- en la misma transacción de la aplicación.
 CREATE OR REPLACE FUNCTION reserve_material(
   p_request_id BIGINT,
   p_warehouse_id BIGINT,
@@ -33,6 +37,8 @@ DECLARE
   v_lots_used INTEGER;
   v_movement_sum NUMERIC(14,4);
 BEGIN
+  -- P000x permite que el caller distinga errores de negocio de errores SQL
+  -- inesperados sin depender del texto libre de la excepción.
   IF p_request_id IS NULL THEN
     RAISE EXCEPTION USING
       ERRCODE = 'P0001',
@@ -66,6 +72,9 @@ BEGIN
   END IF;
 
   IF v_request.status IN ('fulfilled', 'partial') THEN
+    -- La fila de la solicitud está bloqueada. Por eso dos reintentos pueden
+    -- entrar aquí de forma serializada y el segundo devuelve el resultado
+    -- existente sin insertar movimientos duplicados.
     SELECT
       COALESCE(SUM(quantity_moved), 0),
       COUNT(*)::INTEGER
@@ -126,8 +135,9 @@ BEGIN
   v_reserved := v_request.quantity_reserved;
   v_needed := v_request.quantity_required - v_reserved;
 
-  -- Lock every candidate in FIFO order. All callers use the same order, which
-  -- prevents two reservations from observing and consuming the same quantity.
+  -- Primero bloqueamos todos los lotes candidatos y calculamos si alcanza.
+  -- El orden recibido + id hace FIFO determinista y el mismo orden de locks
+  -- reduce el riesgo de deadlocks entre reservas concurrentes.
   FOR v_lot IN
     SELECT *
       FROM stock_lots
@@ -140,6 +150,8 @@ BEGIN
   END LOOP;
 
   IF v_available < v_needed AND NOT p_allow_partial THEN
+    -- Una reserva no parcial es atómica desde el punto de vista del negocio:
+    -- si no alcanza, cambia a backordered pero no consume ningún lote.
     UPDATE reservation_requests
        SET status = 'backordered', updated_at = now()
      WHERE id = v_request.id;
@@ -153,7 +165,8 @@ BEGIN
     )::reservation_result;
   END IF;
 
-  -- A row with zero quantity is ignored and never creates a zero movement.
+  -- En esta segunda pasada consumimos en el mismo orden ya bloqueado. Una fila
+  -- con cantidad cero se ignora y nunca genera un movimiento cero.
   FOR v_lot IN
     SELECT *
       FROM stock_lots
@@ -203,6 +216,8 @@ BEGIN
     FROM stock_movements
    WHERE request_id = v_request.id;
 
+  -- Si algo falla antes de este punto, PostgreSQL revierte descuentos,
+  -- movimientos y cambios de estado como una sola unidad.
   RETURN (
     v_request.id,
     v_status,
