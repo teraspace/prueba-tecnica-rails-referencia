@@ -7,18 +7,11 @@ class EffectiveConfigResolver
   end
 
   def initialize(line_item_id:, unit_uids:, version:, keys: nil)
-    @line_item_id = Integer(line_item_id)
-    @unit_uids = validate_unit_uids(unit_uids)
-    @version = Integer(version)
-    @keys = validate_keys(keys)
-
-    raise ArgumentError, "version must be non-negative" if @version.negative?
-  rescue ArgumentError, TypeError
-    raise ArgumentError, "line_item_id and version must be integers and unit_uids must be strings"
+    @input = EffectiveConfig::Input.new(line_item_id:, unit_uids:, version:, keys:)
   end
 
   def call
-    return empty_result if @unit_uids.empty? || @keys&.empty?
+    return empty_result if @input.unit_uids.empty? || @input.keys&.empty?
 
     rows = fetch_winning_directives
     build_result(rows)
@@ -26,31 +19,8 @@ class EffectiveConfigResolver
 
   private
 
-  def validate_unit_uids(unit_uids)
-    raise ArgumentError, "unit_uids must be an Array" unless unit_uids.is_a?(Array)
-
-    unit_uids.map do |unit_uid|
-      raise ArgumentError, "unit_uids must contain strings" unless unit_uid.is_a?(String)
-      raise ArgumentError, "unit_uid cannot be blank" if unit_uid.empty?
-
-      unit_uid
-    end.uniq
-  end
-
-  def validate_keys(keys)
-    return nil if keys.nil?
-    raise ArgumentError, "keys must be an Array or nil" unless keys.is_a?(Array)
-
-    keys.map do |key|
-      raise ArgumentError, "keys must contain strings" unless key.is_a?(String)
-      raise ArgumentError, "key cannot be blank" if key.empty?
-
-      key
-    end.uniq
-  end
-
   def empty_result
-    @unit_uids.to_h { |unit_uid| [unit_uid, {}] }
+    @input.unit_uids.to_h { |unit_uid| [unit_uid, {}] }
   end
 
   def fetch_winning_directives
@@ -86,10 +56,10 @@ class EffectiveConfigResolver
     SQL
 
     binds = [
-      bind("line_item_id", @line_item_id, ActiveRecord::Type::Integer.new),
-      bind("version", @version, ActiveRecord::Type::Integer.new),
-      bind("unit_uids", @unit_uids, string_array_type),
-      bind("keys", @keys, string_array_type),
+      bind("line_item_id", @input.line_item_id, ActiveRecord::Type::Integer.new),
+      bind("version", @input.version, ActiveRecord::Type::Integer.new),
+      bind("unit_uids", @input.unit_uids, string_array_type),
+      bind("keys", @input.keys, string_array_type),
       bind("user_intent_keys", USER_INTENT_KEYS, string_array_type)
     ]
 
@@ -112,9 +82,9 @@ class EffectiveConfigResolver
       end
     end
 
-    @unit_uids.to_h do |unit_uid|
+    @input.unit_uids.to_h do |unit_uid|
       effective = headers.merge(units.fetch(unit_uid, {}))
-      effective.select! { |key, _value| @keys.nil? || @keys.include?(key) }
+      effective.select! { |key, _value| @input.keys.nil? || @input.keys.include?(key) }
       [unit_uid, effective]
     end
   end
