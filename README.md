@@ -10,7 +10,7 @@ Implementación aislada para desarrollar y evaluar la prueba técnica de Energí
 - Minitest, incluido por Rails
 - Sin gemas adicionales de dominio
 
-La implementación se desarrolla por partes y commits progresivos. No se mezclan cambios con la aplicación Rails de `/Users/charly/tetraspace.llc`.
+La implementación se desarrolla por partes y commits progresivos.
 
 ## Estructura de entrega
 
