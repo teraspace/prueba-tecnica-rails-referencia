@@ -1,4 +1,4 @@
-class EffectiveConfig
+module EffectiveConfig
   class Input
     attr_reader :line_item_id, :unit_uids, :version, :keys
 
