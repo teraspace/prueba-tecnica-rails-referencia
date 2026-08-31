@@ -18,3 +18,5 @@ Tercero, quizá bajó el tiempo de servidor, pero aumentaron red, colas, fronten
 ## 3. Proceso de seis horas que debe tardar dos
 
 Perfilaría primero para separar CPU, IO, base de datos, locks, serialización y memoria. Luego probaría índices/planes, eliminaría N+1, reduciría round trips y procesaría en lotes. Paralelizaría particiones independientes con límite de workers, cachearía resultados repetidos y procesaría solo cambios. También revisaría logs, flushes, GC, conexiones, commits y checkpoint/reanudación. Mediría tiempo total, throughput, percentiles, recursos, errores y equivalencia funcional después de cada cambio.
+
+Hay otros factores; como por ejemplo si entre la capa de aplicación y el servidor de Base de datos hay una alta latencia y por mal diseño lanza peticiones de negocio pequeñas en vez de intentar que sean por lotes u otra forma.
