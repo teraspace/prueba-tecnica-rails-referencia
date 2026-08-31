@@ -4,7 +4,7 @@
 
 ### 0:00–0:20 — Presentación y alcance
 
-“Voy a explicar la solución desde el problema de negocio y no solamente desde el código. Interpreté el ejercicio como el backend de una operación de corte: recibe piezas y material disponible, calcula un plan y reserva inventario. El enunciado no define una integración directa con una CNC, así que dejé esa frontera fuera y me concentré en la consistencia del dominio.”
+“Voy a explicar la solución desde el problema de negocio y no solamente desde el código. El enunciado pide servicios Ruby on Rails y una función PostgreSQL; no pide una API HTTP, controllers ni frontend. Por eso implementé la lógica en la capa de dominio: recibe piezas y material disponible, calcula un plan y reserva inventario. El enunciado tampoco define una integración directa con una CNC, así que dejé esas fronteras fuera y me concentré en la consistencia del dominio.”
 
 ### 0:20–0:55 — Configuración efectiva
 
@@ -26,6 +26,8 @@ Para una solicitud no parcial, si el inventario total no alcanza, no descuento n
 
 Hay decisiones que el enunciado no especifica. Por ejemplo, no define una tabla de almacenes ni la unidad física de las dimensiones. Para producción agregaría esa relación y normalizaría las medidas a milímetros enteros o `NUMERIC`, en lugar de depender de `Float`.”
 
+“Tampoco agregué controllers solo para simular una API. Si el sistema necesitara endpoints, tendría un controller delgado para autenticación, autorización y validación HTTP, que delegaría en estos servicios. Así la misma lógica podría ser usada por una API, un job o una integración externa.”
+
 ### 2:45–3:00 — Cierre
 
 “La solución está cubierta con pruebas de precedencia, límites del planificador, FIFO, parciales, idempotencia y concurrencia. Mi prioridad fue que el inventario, la trazabilidad y los reintentos siguieran siendo correctos bajo carga, no solamente que el caso feliz devolviera un número.”
@@ -35,4 +37,5 @@ Hay decisiones que el enunciado no especifica. Por ejemplo, no define una tabla 
 - Hablar sobre decisiones y trade-offs, no leer cada archivo.
 - Mostrar primero el flujo general y después un fragmento corto de `FOR UPDATE`.
 - Aclarar los supuestos antes de defenderlos como requisitos.
+- Si preguntan por la API, aclarar que no era un requisito: la solución implementa servicios. Un controller futuro delegaría en ellos.
 - Si preguntan por la CNC, responder que Rails administra órdenes y planificación; la generación de G-code y el control en tiempo real pertenecen a una integración CAM/PLC separada.
