@@ -6,6 +6,12 @@ gem "rails", "~> 7.2.2.2"
 gem "pg", "~> 1.5"
 gem "minitest", "~> 5.20"
 
+group :development, :test do
+  gem "brakeman"
+  gem "bundler-audit"
+  gem "rubocop-rails-omakase"
+end
+
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 
