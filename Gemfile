@@ -4,7 +4,7 @@ source "https://rubygems.org"
 gem "rails", "~> 8.1.3.1"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.5"
-gem "minitest", "~> 5.20"
+gem "minitest", "~> 6.0"
 
 group :development, :test do
   gem "brakeman"
